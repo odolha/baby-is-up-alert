@@ -19,29 +19,15 @@ package com.example.android.camera2.basic.fragments
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.ImageFormat
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
-import android.hardware.camera2.DngCreator
-import android.hardware.camera2.TotalCaptureResult
+import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.Looper
+import android.os.*
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.Surface
-import android.view.SurfaceHolder
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import androidx.fragment.app.Fragment
@@ -50,32 +36,26 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
+import com.example.android.camera.utils.OrientationLiveData
 import com.example.android.camera.utils.computeExifOrientation
 import com.example.android.camera.utils.getPreviewOutputSize
-import com.example.android.camera.utils.OrientationLiveData
-import com.example.android.camera.utils.YuvToRgbConverter
+import com.example.android.camera2.basic.BuildConfig
 import com.example.android.camera2.basic.CameraActivity
 import com.example.android.camera2.basic.R
+import com.example.android.camera2.basic.WsClient
 import com.example.android.camera2.basic.databinding.FragmentCameraBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.Closeable
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.lang.Math.abs
-import java.text.SimpleDateFormat
+import java.net.URI
+import java.nio.ByteBuffer
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeoutException
-import java.util.Date
-import java.util.Locale
-import kotlin.RuntimeException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import android.graphics.BitmapFactory
-import java.nio.ByteBuffer
 
 
 class CameraFragment : Fragment() {
@@ -143,6 +123,8 @@ class CameraFragment : Fragment() {
 
     private var curImage: Bitmap? = null
 
+    private lateinit var wsClient: WsClient
+
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
@@ -155,6 +137,10 @@ class CameraFragment : Fragment() {
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val uri = URI("${BuildConfig.BIUA_SERVER}")
+        wsClient = WsClient(uri)
+        wsClient.connect()
 
         fragmentCameraBinding.viewFinder.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceDestroyed(holder: SurfaceHolder) = Unit
@@ -191,6 +177,7 @@ class CameraFragment : Fragment() {
             })
         }
     }
+
 
     /**
      * Begin all camera operations in a coroutine in the main thread. This function:
@@ -251,7 +238,9 @@ class CameraFragment : Fragment() {
         val difference = getDifferencePercent(bitmap1.scale(16, 12), bitmap2.scale(16, 12))
         if (difference > 5) {
             // motion detected
-            Log.i(TAG, "MOTION DETECTED!!!!")
+            Log.i(TAG, "MOTION DETECTED @ $difference")
+            Log.i(TAG, "sending")
+            wsClient.send("DIF$difference");
         }
     }
 

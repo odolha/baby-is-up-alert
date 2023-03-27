@@ -28,6 +28,14 @@ android {
         targetSdkVersion 29
         versionCode 1
         versionName "1.0.0"
+
+        def localProps = new Properties()
+        def localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localProps.load(new FileInputStream(localPropsFile))
+        }
+        buildConfigField "String", "BIUA_SERVER", "${localProps.getProperty("BIUA_SERVER") ?: ""}"
+        buildConfigField "String", "BIUA_KEY", "${localProps.getProperty("BIUA_KEY") ?: ""}"
     }
 
     compileOptions {
@@ -89,4 +97,7 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.2.0'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+    // ws
+    implementation 'org.java-websocket:Java-WebSocket:1.4.0'
 }
