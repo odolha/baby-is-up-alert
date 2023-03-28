@@ -5,6 +5,20 @@ const wss = new WebSocketServer({ port: 4001 });
 
 const key = local.BIUA_KEY;
 
+let motionLevel = 0;
+
+function project(s1, t1, s2, t2, v) {
+  return t1 + ((v - s1) * (t2 - t1)) / (s2 - s1);
+}
+
+const wsClients = [];
+
+setInterval(() => {
+  motionLevel = motionLevel * 0.9;
+  console.log(motionLevel);
+  wsClients.forEach(ws => ws.send(motionLevel));
+}, 1000);
+
 wss.on('connection', function connection(ws) {
   console.error('Incoming ' + ws._socket.remoteAddress);
 
@@ -29,6 +43,7 @@ wss.on('connection', function connection(ws) {
       } else {
         console.info('Logged in ' + ws._socket.remoteAddress);
         loggedIn = true;
+        wsClients.push(ws);
       }
     } else {
       if (!loggedIn) {
@@ -36,7 +51,9 @@ wss.on('connection', function connection(ws) {
       }
       if (action === 'DIF') {
         const diff = Number.parseFloat(dataRest);
-        console.log('DIF ' + diff);
+        const add = project(5.0, 0.0, 20.0, 0.2, diff);
+        motionLevel = Math.min(motionLevel + add, 1.0);
+        console.log('diff: ' + diff);
       }
     }
   });
